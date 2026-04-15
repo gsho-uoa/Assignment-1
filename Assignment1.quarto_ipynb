@@ -15,7 +15,7 @@
         "    geometry: margin=2.5cm\n",
         "---"
       ],
-      "id": "e01780ac"
+      "id": "3e0a1646"
     },
     {
       "cell_type": "markdown",
@@ -35,7 +35,7 @@
         "\n",
         "I first import all packages that will be used and built functions that will be used."
       ],
-      "id": "82352ece"
+      "id": "bb0d0690"
     },
     {
       "cell_type": "code",
@@ -140,7 +140,7 @@
         "\n",
         "sensor_locations = pd.read_csv(\"akl_ped-Geodata.csv\")"
       ],
-      "id": "e8fd1df2",
+      "id": "aa63a939",
       "execution_count": null,
       "outputs": []
     },
@@ -158,7 +158,7 @@
         "ped.tail()\n",
         "ped.describe()"
       ],
-      "id": "e4ef79ca",
+      "id": "c357afaf",
       "execution_count": null,
       "outputs": []
     },
@@ -169,7 +169,7 @@
         "# A. Clean data:\n",
         "In this chunk of code I dropped any rows that contained NaN or 0 values and created temporal features. "
       ],
-      "id": "88ae5258"
+      "id": "3021bbe9"
     },
     {
       "cell_type": "code",
@@ -190,7 +190,7 @@
         "ped[\"day_of_week\"] = pd.to_datetime(ped[\"Date\"]).dt.day_name() #Day of week\n",
         "ped[\"hour\"] = ped[\"Time\"].str.split(\":\").str[0].astype(int) #Hour"
       ],
-      "id": "2210d5a2",
+      "id": "e434e94f",
       "execution_count": null,
       "outputs": []
     },
@@ -200,13 +200,13 @@
       "source": [
         "I noticed errors in the name of a street as well as a incorrect year therefore used code to correct it. I also ran into an issue where some sensors were not available across the whole time period (2020-2024) therefore I removed those sensors. I also noticed that one sensor was an object therefore was changed to an interger. Missing values were filled using linear interpolation and format was changed from wide to long."
       ],
-      "id": "1223b70e"
+      "id": "e8c14c4a"
     },
     {
       "cell_type": "code",
       "metadata": {},
       "source": [
-        "ped = ped.rename(columns={\"59 High Stret\": \"59 High Street\"}) #Correct errors in names\n",
+        "ped = ped.rename(columns={\"59 High Stret\": \"59 High Street\"}) #Correct errors in names    \n",
         "ped = ped.drop(columns=[ #Removed theses sensors data due to being unavailable during some of the time period\n",
         "    \"188 Quay Street Lower Albert (EW)\", \n",
         "    \"188 Quay Street Lower Albert (NS)\",\n",
@@ -240,7 +240,7 @@
         "print(f\"Long shape: {ped_long.shape}\")\n",
         "count_missing(ped_long)"
       ],
-      "id": "03c402db",
+      "id": "cf29af64",
       "execution_count": null,
       "outputs": []
     },
@@ -250,7 +250,7 @@
       "source": [
         "Calculated the total number of footfalls per year and fix incorrect year. "
       ],
-      "id": "9181f70a"
+      "id": "a845461c"
     },
     {
       "cell_type": "code",
@@ -263,10 +263,11 @@
         "    .sum()\n",
         "    .reset_index()\n",
         ")\n",
-        "ped_long[\"year\"] = ped_long[\"Date\"].dt.year\n",
+        "\n",
         "print(yearly)\n",
+        "\n",
         "#Fix wrong year\n",
-        "mask_2017 = ped_long[\"Date\"].dt.year == 2017\n",
+        "mask_2017 = ped_long[\"Date\"].dt.year == 2017 \n",
         "ped_long.loc[mask_2017, \"Date\"] = ped_long.loc[mask_2017, \"Date\"].apply(\n",
         "    lambda d: d.replace(year=2020)\n",
         ")\n",
@@ -280,7 +281,7 @@
         "\n",
         "print(yearly)"
       ],
-      "id": "bde46fcd",
+      "id": "92427ce8",
       "execution_count": null,
       "outputs": []
     },
@@ -290,45 +291,37 @@
       "source": [
         "Imported the API from STATS NZ using a API Key and reprojected CRS from 2193 to 4326 to ensure that the SA2 blocks will work with the Geodata downloaded from Heart of the City sensor data. "
       ],
-      "id": "57e1f105"
+      "id": "768f8992"
     },
     {
       "cell_type": "code",
       "metadata": {},
       "source": [
-        "#| eval: false\n",
+        "#| eval: true\n",
         "\n",
         "#=========================\n",
         "#     API INTEGRATION \n",
         "#=========================\n",
-        "\n",
-        "from config import API_KEY\n",
-        " \n",
+        "from config import API_KEY \n",
         "\n",
         "LAYER_ID = 111227   # SA2 2023 layer\n",
         "BASE_URL = \"https://datafinder.stats.govt.nz/services/api/v1.x\"\n",
         "\n",
         "HEADERS = {\n",
-        "    \"Authorization\": f\"Bearer {API_KEY}\",\n",
+        "    \"Authorization\": f\"key {API_KEY}\",\n",
         "    \"Content-Type\": \"application/json\",\n",
         "}\n",
         "\n",
         "payload = {\n",
-        "    \"crs\": \"EPSG:2193\",\n",
-        "    \"formats\": {\"vector\": \"application/x-gpkg\"},\n",
-        "    \"items\": [\n",
-        "        {\n",
-        "            \"item\": LAYER_ID,\n",
-        "            \"type\": \"layer\"\n",
-        "        }\n",
-        "    ]\n",
+        "    \"crs\": \"EPSG:2193\",   # Stats NZ default (NZTM)\n",
+        "    \"formats\": {\"vector\": \"application/x-ogc-gpkg\"},\n",
+        "    \"items\": [{\"item\": f\"{BASE_URL}/layers/{LAYER_ID}/\"}],\n",
         "}\n",
         "\n",
-        "response = requests.post(\n",
-        "    f\"{BASE_URL}/exports/\",\n",
-        "    headers=HEADERS,\n",
-        "    json=payload\n",
-        ")\n",
+        "# -----------------------------\n",
+        "# START EXPORT JOB\n",
+        "# -----------------------------\n",
+        "response = requests.post(f\"{BASE_URL}/exports/\", json=payload, headers=HEADERS)\n",
         "response.raise_for_status()\n",
         "\n",
         "export_data = response.json()\n",
@@ -337,18 +330,12 @@
         "print(\"Export job created:\", export_url)\n",
         "print(\"Initial state:\", export_data[\"state\"])\n",
         "\n",
+        "# -----------------------------\n",
+        "# POLL UNTIL COMPLETE\n",
+        "# -----------------------------\n",
         "while True:\n",
-        "    r = requests.get(export_url, headers=HEADERS)\n",
-        "\n",
-        "    # Check content type BEFORE parsing JSON\n",
-        "    ctype = r.headers.get(\"Content-Type\", \"\")\n",
-        "    if \"application/json\" not in ctype:\n",
-        "        print(\"Non‑JSON response, waiting...\")\n",
-        "        time.sleep(2)\n",
-        "        continue\n",
-        "\n",
-        "    status = r.json()\n",
-        "    state = status.get(\"state\", \"unknown\")\n",
+        "    status = requests.get(export_url, headers=HEADERS).json()\n",
+        "    state = status[\"state\"]\n",
         "    print(\"Export state:\", state)\n",
         "\n",
         "    if state == \"complete\":\n",
@@ -388,23 +375,7 @@
         "\n",
         "print(\"Saved:\", output_path)"
       ],
-      "id": "b6dd3713",
-      "execution_count": null,
-      "outputs": []
-    },
-    {
-      "cell_type": "code",
-      "metadata": {},
-      "source": [
-        "#| label: load-sa2\n",
-        "#| eval: true\n",
-        "\n",
-        "import geopandas as gpd\n",
-        "\n",
-        "sa2_2023_4326 = gpd.read_file(\"sa2_2023_4326.gpkg\")\n",
-        "sa2_2023_4326.head()"
-      ],
-      "id": "load-sa2",
+      "id": "f7fcf80f",
       "execution_count": null,
       "outputs": []
     },
@@ -420,7 +391,7 @@
         "\n",
         "Looking at the later years, the pattern becomes clearer. There is recovery, but not back to pre-COVID levels. Both 2023 and 2024 show stronger, more stable monthly activity than during the pandemic, yet they still sit below the pre‑COVID baseline. This suggests that while the CBD is busier than during the pandemic, it hasn’t completely returned to its early-2020 numbers. Likely reflecting ongoing hybrid work patterns, slower tourism recovery, and changes in how people use the city."
       ],
-      "id": "af03adbe"
+      "id": "08e46dd0"
     },
     {
       "cell_type": "code",
@@ -466,7 +437,7 @@
         "plt.tight_layout()\n",
         "plt.show()"
       ],
-      "id": "86ddb024",
+      "id": "9b66e6f7",
       "execution_count": null,
       "outputs": []
     },
@@ -476,7 +447,7 @@
       "source": [
         "Using a bar graph to get a more in-depth look at the changes in the composition of foot traffic (Figure 2), we categorised pedestrian data into three levels: low foot traffic (<300), medium foot traffic (301-1000), and high foot traffic (>1001). In 2020, nearly 70% of all hourly observations fell into the Low footfall category, reflecting reduced movement during lockdowns and restricted activity. By 2024, this proportion had declined slightly, with a corresponding rise in High footfall hours. Although the overall distribution remains similar, the increase in high‑activity periods suggests that peak‑time foot traffic is returning more strongly than off‑peak activity, hinting at a gradual but uneven recovery in how people use the CBD."
       ],
-      "id": "b73ceee5"
+      "id": "36880a86"
     },
     {
       "cell_type": "code",
@@ -508,7 +479,7 @@
         "plt.grid(axis=\"y\")\n",
         "plt.show()"
       ],
-      "id": "da0a4a19",
+      "id": "bfc515ac",
       "execution_count": null,
       "outputs": []
     },
@@ -519,7 +490,7 @@
         "# Create a folium map\n",
         "This interactive Folium map shows the spatial distribution of Auckland pedestrian sensors and how footfall has changed between 2020 and 2024. Each point represents a sensor location, and clicking on a marker reveals the total annual counts for all years (2020 - 2024) along with the calculated recovery percentage (2020 vs 2024). This helps highlight which parts of the city have returned to pre‑COVID activity levels and which areas are still lagging. The map is fully zoomable and interactive, allowing you to explore patterns across the CBD, waterfront, and surrounding neighbourhoods. We can see that most areas have recovered with the exception of the Quay Street-Custom  Street which could be do to the decrease in arriving tourist through the port. This SA2 is largely professional business which could also contribute to the lack of foot traffic. Meanwhile, Hobson Ridge North, Queen Street and Shortland Streets have all increased footfall in 2024 compared to 2020. This is most likely due to attractions such as the Sky Tower and the presence of more food and accommodation services. The other two SA2 blocks, Queen Street South West and Karangahape East, show mostly the same amount of foot traffic in both years."
       ],
-      "id": "928d296e"
+      "id": "9a933f46"
     },
     {
       "cell_type": "code",
@@ -690,7 +661,7 @@
         "        )\n",
         "    ).add_to(m)"
       ],
-      "id": "d33ab02b",
+      "id": "7a7f41f9",
       "execution_count": null,
       "outputs": []
     },
@@ -704,7 +675,7 @@
         "# Conclusion\n",
         "Overall, this analysis shows that pedestrian recovery across the Auckland CBD is uneven. Most areas have returned to or exceeded 2020 footfall levels, but one block remains significantly below its pre‑COVID activity. The interactive map highlights how recovery varies spatially, revealing shifts in movement patterns and how different parts of the city have responded to COVID-19 challenges."
       ],
-      "id": "f97a0abe"
+      "id": "775e1845"
     }
   ],
   "metadata": {

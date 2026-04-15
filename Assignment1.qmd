@@ -137,7 +137,7 @@ ped.describe()
 
 ```
 
-# A. Clean data:
+# Clean data:
 In this chunk of code I dropped any rows that contained NaN or 0 values and created temporal features. 
 ```{python}
 #| eval: True
@@ -224,39 +224,31 @@ print(yearly)
 
 Imported the API from STATS NZ using a API Key and reprojected CRS from 2193 to 4326 to ensure that the SA2 blocks will work with the Geodata downloaded from Heart of the City sensor data. 
 ```{python}
-#| eval: false
+#| eval: true
 
 #=========================
 #     API INTEGRATION 
 #=========================
-
-from config import API_KEY
- 
+from config import API_KEY 
 
 LAYER_ID = 111227   # SA2 2023 layer
 BASE_URL = "https://datafinder.stats.govt.nz/services/api/v1.x"
 
 HEADERS = {
-    "Authorization": f"Bearer {API_KEY}",
+    "Authorization": f"key {API_KEY}",
     "Content-Type": "application/json",
 }
 
 payload = {
-    "crs": "EPSG:2193",
-    "formats": {"vector": "application/x-gpkg"},
-    "items": [
-        {
-            "item": LAYER_ID,
-            "type": "layer"
-        }
-    ]
+    "crs": "EPSG:2193",   # Stats NZ default (NZTM)
+    "formats": {"vector": "application/x-ogc-gpkg"},
+    "items": [{"item": f"{BASE_URL}/layers/{LAYER_ID}/"}],
 }
 
-response = requests.post(
-    f"{BASE_URL}/exports/",
-    headers=HEADERS,
-    json=payload
-)
+# -----------------------------
+# START EXPORT JOB
+# -----------------------------
+response = requests.post(f"{BASE_URL}/exports/", json=payload, headers=HEADERS)
 response.raise_for_status()
 
 export_data = response.json()
@@ -265,18 +257,12 @@ export_url = export_data["url"]
 print("Export job created:", export_url)
 print("Initial state:", export_data["state"])
 
+# -----------------------------
+# POLL UNTIL COMPLETE
+# -----------------------------
 while True:
-    r = requests.get(export_url, headers=HEADERS)
-
-    # Check content type BEFORE parsing JSON
-    ctype = r.headers.get("Content-Type", "")
-    if "application/json" not in ctype:
-        print("Non‑JSON response, waiting...")
-        time.sleep(2)
-        continue
-
-    status = r.json()
-    state = status.get("state", "unknown")
+    status = requests.get(export_url, headers=HEADERS).json()
+    state = status["state"]
     print("Export state:", state)
 
     if state == "complete":
@@ -317,13 +303,6 @@ sa2_2023_4326.to_file(output_path, driver="GPKG")
 print("Saved:", output_path)
 ```
 
-``` {python}
-#| label: load-sa2
-#| eval: true
-
-sa2_2023_4326 = gpd.read_file("sa2_2023_4326.gpkg")
-
-```
 
 # Create visualisations of the data 
 First must calculate the number of footfalls per month for year. Created a lineplot to visualise this

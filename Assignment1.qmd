@@ -158,7 +158,7 @@ ped["hour"] = ped["Time"].str.split(":").str[0].astype(int) #Hour
 
 I noticed errors in the name of a street as well as a incorrect year therefore used code to correct it. I also ran into an issue where some sensors were not available across the whole time period (2020-2024) therefore I removed those sensors. I also noticed that one sensor was an object therefore was changed to an interger. Missing values were filled using linear interpolation and format was changed from wide to long.
 ```{python}
-ped = ped.rename(columns={"59 High Stret": "59 High Street"}) #Correct errors in names
+ped = ped.rename(columns={"59 High Stret": "59 High Street"}) #Correct errors in names    
 ped = ped.drop(columns=[ #Removed theses sensors data due to being unavailable during some of the time period
     "188 Quay Street Lower Albert (EW)", 
     "188 Quay Street Lower Albert (NS)",
@@ -202,10 +202,11 @@ yearly = (
     .sum()
     .reset_index()
 )
-ped_long["year"] = ped_long["Date"].dt.year
+
 print(yearly)
+
 #Fix wrong year
-mask_2017 = ped_long["Date"].dt.year == 2017
+mask_2017 = ped_long["Date"].dt.year == 2017 
 ped_long.loc[mask_2017, "Date"] = ped_long.loc[mask_2017, "Date"].apply(
     lambda d: d.replace(year=2020)
 )
@@ -320,10 +321,8 @@ print("Saved:", output_path)
 #| label: load-sa2
 #| eval: true
 
-import geopandas as gpd
-
 sa2_2023_4326 = gpd.read_file("sa2_2023_4326.gpkg")
-sa2_2023_4326.head()
+
 ```
 
 # Create visualisations of the data 

@@ -1,0 +1,37 @@
+# -------------------------
+# PRIVATE FILES
+# -------------------------
+config.py
+
+# -------------------------
+# PYTHON CACHE
+# -------------------------
+__pycache__/
+*.pyc
+
+# -------------------------
+# JUPYTER / QUARTO TEMP
+# -------------------------
+.ipynb_checkpoints/
+*.quarto_ipynb_*/
+
+# -------------------------
+# VIRTUAL ENVIRONMENTS
+# -------------------------
+.venv/
+venv/
+
+# -------------------------
+# GENERATED GEOFILES
+# (Your script downloads and creates these)
+# -------------------------
+*.zip
+*.gpkg
+sa2_2023/
+sa2_2023_4326.gpkg
+
+# -------------------------
+# OS JUNK
+# -------------------------
+.DS_Store
+
